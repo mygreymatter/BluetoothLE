@@ -5,7 +5,7 @@ import java.util.UUID;
 /**
  * Created by mayo on 6/10/15.
  */
-public class ReadBear {
+public class RedBear {
     public static final UUID RBL_SERVICE = UUID
             .fromString("713D0000-503E-4C75-BA94-3148F18D941E");
 

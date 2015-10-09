@@ -5,7 +5,9 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -21,10 +23,11 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ActMain extends AppCompatActivity implements View.OnClickListener {
-    private static final String TAG = "BluetoothLE";
+    private static final String TAG = "RedBear";
     private static final int REQUEST_CODE_BLUETOOTH_ON = 100;
     private static final int REQUEST_CODE_BLUETOOTH_OFF = 101;
 
@@ -132,9 +135,9 @@ public class ActMain extends AppCompatActivity implements View.OnClickListener {
                 new Handler().postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                             mBLEScanner.stopScan(mScanCallback);
-                        } else*/
+                        } else
                             mBluetoothAdapter.stopLeScan(mLeScanCallback);
                         displayDevicesList();
                     }
@@ -188,15 +191,15 @@ public class ActMain extends AppCompatActivity implements View.OnClickListener {
         if (mBlue.blueDevices != null)
             mBlue.blueDevices.clear();
 
-        /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             mBLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
-            *//*ScanSettings settings = new ScanSettings.Builder()
+            ScanSettings settings = new ScanSettings.Builder()
                     .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER).build();
 
             List<ScanFilter> filters = new ArrayList<>();
-            mBLEScanner.startScan(filters,settings,mScanCallback);*//*
-            mBLEScanner.startScan(mScanCallback);
-        } else*/
+            mBLEScanner.startScan(filters,settings,mScanCallback);
+//            mBLEScanner.startScan(mScanCallback);
+        } else
             mBluetoothAdapter.startLeScan(mLeScanCallback);
 
     }

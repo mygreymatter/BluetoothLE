@@ -23,8 +23,14 @@
         </activity>
         <activity
             android:name=".ActDisplay"
-            android:label="@string/title_activity_act_display">
+            android:label="@string/title_activity_act_display" >
         </activity>
+
+        <!--<service
+            android:name=".BlueService"
+            android:enabled="true"
+            android:exported="true" >
+        </service>-->
     </application>
 
 </manifest>
