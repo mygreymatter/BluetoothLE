@@ -6,21 +6,41 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
     android:orientation="vertical"
+    android:padding="5dp"
     tools:context="com.mayo.bluetoothle.ActDisplay">
 
     <TextView android:id="@+id/device_name"
               android:layout_width="match_parent"
+              android:layout_height="wrap_content"
               android:layout_alignParentTop="true"
               android:gravity="center"
-              android:textSize="20sp"
-              android:textStyle="bold"
-              android:layout_height="wrap_content"
               android:padding="10dp"
-              android:text="BLE Shield"/>
+              android:text="BLE Shield"
+              android:textSize="20sp"
+              android:textStyle="bold"/>
+
+    <TextView android:id="@+id/control_input"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:layout_above="@+id/control_output"
+              android:layout_marginBottom="10dp"
+              android:gravity="center"
+              android:padding="10dp"
+              android:text="Low"
+              android:textSize="20sp"
+              android:textStyle="bold"/>
+
+    <Button android:id="@+id/control_output"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/connect"
+            android:layout_marginBottom="10dp"
+            android:text="On"/>
 
     <Button android:id="@+id/connect"
             android:layout_width="match_parent"
-            android:text="Connect"
+            android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
-            android:layout_height="wrap_content"/>
+            android:layout_marginBottom="10dp"
+            android:text="Connect"/>
 </RelativeLayout>

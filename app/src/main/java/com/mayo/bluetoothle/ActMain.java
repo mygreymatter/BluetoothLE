@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ActMain extends AppCompatActivity implements View.OnClickListener {
-    private static final String TAG = "BluetoothLE";
+    private static final String TAG = "RedBear";
     private static final int REQUEST_CODE_BLUETOOTH_ON = 100;
     private static final int REQUEST_CODE_BLUETOOTH_OFF = 101;
 
