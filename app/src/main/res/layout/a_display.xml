@@ -15,7 +15,7 @@
               android:layout_alignParentTop="true"
               android:gravity="center"
               android:padding="10dp"
-              android:text="BLE Shield"
+              android:text=""
               android:textSize="20sp"
               android:textStyle="bold"/>
 

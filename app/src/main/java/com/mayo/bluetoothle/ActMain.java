@@ -1,42 +1,31 @@
 package com.mayo.bluetoothle;
 
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothManager;
-import android.bluetooth.le.BluetoothLeScanner;
-import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanFilter;
-import android.bluetooth.le.ScanResult;
-import android.bluetooth.le.ScanSettings;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
-import android.util.ArrayMap;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import java.util.ArrayList;
-import java.util.List;
 
-public class ActMain extends AppCompatActivity implements View.OnClickListener {
-    private static final String TAG = "RedBear";
+import com.mayo.bluetoothle.ServiceBlue.IServiceBlue;
+import com.mayo.bluetoothle.ServiceBlue.MeBinder;
+
+public class ActMain extends AppCompatActivity implements View.OnClickListener,IServiceBlue{
     private static final int REQUEST_CODE_BLUETOOTH_ON = 100;
     private static final int REQUEST_CODE_BLUETOOTH_OFF = 101;
-
-    private Blue mBlue;
-
-    private BluetoothAdapter mBluetoothAdapter;
-    private BluetoothLeScanner mBLEScanner;
-
-    private boolean isBluetoothOn;
+    private static final String TAG = "BluetoothLE";
+    private Intent intent;
+    private ServiceBlue mService;
+    private boolean isBound;
 
     private Button mBluetooth;
     private Button mStartScan;
@@ -49,16 +38,6 @@ public class ActMain extends AppCompatActivity implements View.OnClickListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.a_main);
 
-        mBlue = Blue.getInstance();
-        mBlue.blueDevices = new ArrayMap<>();
-        PackageManager pm = getPackageManager();
-        boolean hasBLE = pm.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE);
-
-        if (hasBLE)
-            Log.i(TAG, "Yes");
-        else
-            Log.i(TAG, "No");
-
         mBluetooth = (Button) findViewById(R.id.bluetooth);
         mStartScan = (Button) findViewById(R.id.scan_bluetooth);
         mBlueDevicesList = (ListView) findViewById(R.id.bluedevices_list);
@@ -69,7 +48,6 @@ public class ActMain extends AppCompatActivity implements View.OnClickListener {
         mBluetooth.setText("Start Bluetooth");
 
         mBlueDevicesList.setAdapter(mAdapter);
-
         mStartScan.setEnabled(false);
 
         mBlueDevicesList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -85,79 +63,52 @@ public class ActMain extends AppCompatActivity implements View.OnClickListener {
                 startActivity(intent);
             }
         });
-    }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-        if (!getPackageManager()
-                .hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
-            Toast.makeText(this, "No LE Support.", Toast.LENGTH_SHORT)
-                    .show();
-            finish();
-            return;
-        }
-
-        BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2)
-            mBluetoothAdapter = bluetoothManager.getAdapter();
-         else
-            mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
-        if (mBluetoothAdapter.isEnabled()) {
-            mBluetooth.setText("Stop Bluetooth");
-            mStartScan.setEnabled(true);
-            isBluetoothOn = true;
-        }
-
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-
-        stopBluetooth();
-    }
-
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.bluetooth:
-                if (!isBluetoothOn)
-                    startBluetooth();
-                else
-                    stopBluetooth();
-                break;
-            case R.id.scan_bluetooth:
-                startScan();
-                new Handler().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                            mBLEScanner.stopScan(mScanCallback);
-                        } else
-                            mBluetoothAdapter.stopLeScan(mLeScanCallback);
-                        displayDevicesList();
-                    }
-                }, 1000);
-                break;
+        if (hasBluetoothLe()) {
+            intent = new Intent(this, ServiceBlue.class);
+            bindService(intent, mConnection, BIND_AUTO_CREATE);
         }
     }
 
-    private void displayDevicesList() {
-        mAdapter.setDevices(mBlue.blueDevices);
-        mAdapter.notifyDataSetChanged();
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        if (hasBluetoothLe() && isBound)
+            unbindService(mConnection);
     }
 
-    private void startBluetooth() {
-        /*
-         * We need to enforce that Bluetooth is first enabled, and take the
-         * user to settings to enable it if they have not done so.
-         */
+    private ServiceConnection mConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder iBinder) {
+            MeBinder binder = (ServiceBlue.MeBinder) iBinder;
+            
+            isBound = true;
 
-        if (!mBluetoothAdapter.isEnabled()) {
+            mService = binder.getService();
+            mService.setContext(ActMain.this);
+            mService.initBluetooth();
+
+            if(mService.hasBluetoothLeEnabled())
+                toggelBlueUI();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mService = null;
+            Log.i(TAG, "Disconnected");
+            isBound = false;
+        }
+    };
+
+    private boolean hasBluetoothLe() {
+        PackageManager pm = getPackageManager();
+        return pm.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE);
+    }
+
+    private void enableBluetooth(){
+        if (!mService.hasBluetoothLeEnabled()) {
+            mService.initBluetooth();
             //Bluetooth is disabled
             Intent enableBtIntent =
                     new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -165,12 +116,13 @@ public class ActMain extends AppCompatActivity implements View.OnClickListener {
         }
     }
 
-    private void stopBluetooth() {
-        if (mBluetoothAdapter.isEnabled()) {
-            mBluetoothAdapter.disable();
+    private void toggelBlueUI() {
+        if(mService.hasBluetoothLeEnabled()){
+            mStartScan.setEnabled(true);
+            mBluetooth.setText("Stop Bluetooth");
+        }else{
             mStartScan.setEnabled(false);
             mBluetooth.setText("Start Bluetooth");
-            isBluetoothOn = false;
         }
     }
 
@@ -180,55 +132,38 @@ public class ActMain extends AppCompatActivity implements View.OnClickListener {
 
         switch (requestCode) {
             case REQUEST_CODE_BLUETOOTH_ON:
-                mBluetooth.setText("Stop Bluetooth");
-                mStartScan.setEnabled(false);
-                isBluetoothOn = true;
+                toggelBlueUI();
                 break;
         }
     }
 
-    private void startScan() {
-        if (mBlue.blueDevices != null)
-            mBlue.blueDevices.clear();
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.bluetooth:
+                if (!mService.hasBluetoothLeEnabled()) {
+                    enableBluetooth();
+                }else {
+                    mService.disableBluetooth();
+                    toggelBlueUI();
+                    mStartScan.setEnabled(false);
+                }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            mBLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
-            ScanSettings settings = new ScanSettings.Builder()
-                    .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER).build();
-
-            List<ScanFilter> filters = new ArrayList<>();
-            mBLEScanner.startScan(filters,settings,mScanCallback);
-//            mBLEScanner.startScan(mScanCallback);
-        } else
-            mBluetoothAdapter.startLeScan(mLeScanCallback);
-
+                break;
+            case R.id.scan_bluetooth:
+                mService.startScan();
+                break;
+        }
     }
 
-    private BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback() {
+    @Override
+    public void displayDevices() {
+        mAdapter.setDevices(mService.getDevices());
+        mAdapter.notifyDataSetChanged();
+    }
 
-        @Override
-        public void onLeScan(final BluetoothDevice device, final int rssi,
-                             byte[] scanRecord) {
-            Log.d(TAG, "onScanResult (device : " + device.getName() + ")");
-            mBlue.blueDevices.put(device.getAddress(), device);
-        }
-    };
+    @Override
+    public void setConnectionState(boolean connectionState) {
 
-    private ScanCallback mScanCallback = new ScanCallback() {
-        @Override
-        public void onScanResult(int callbackType, ScanResult result) {
-            Log.d(TAG, "onScanResult (device : " + result.getDevice().getName() + ")");
-            mBlue.blueDevices.put(result.getDevice().getAddress(), result.getDevice());
-        }
-
-        @Override
-        public void onBatchScanResults(List<ScanResult> results) {
-            super.onBatchScanResults(results);
-        }
-
-        @Override
-        public void onScanFailed(int errorCode) {
-            super.onScanFailed(errorCode);
-        }
-    };
+    }
 }
